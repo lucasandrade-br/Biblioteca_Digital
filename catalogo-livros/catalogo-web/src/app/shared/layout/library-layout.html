@@ -1,0 +1,109 @@
+<a class="skip-link" href="#main" (click)="$event.preventDefault(); mainContent.focus()">Pular para o conteúdo</a>
+
+<header class="library-topbar">
+  <div class="library-brand">
+    <button
+      #navigationButton
+      type="button"
+      class="navigation-toggle"
+      [attr.aria-expanded]="navigationOpen()"
+      aria-controls="library-navigation"
+      [attr.aria-label]="navigationOpen() ? 'Fechar navegação' : 'Abrir navegação'"
+      (click)="toggleNavigation()"
+    >
+      <span class="navigation-icon" aria-hidden="true"></span>
+    </button>
+    <a class="brand" routerLink="/livros" aria-label="Biblioteca, catálogo de livros">
+      <span class="brand-icon" aria-hidden="true"></span> Biblioteca Digital
+    </a>
+  </div>
+
+  @if (auth.session(); as session) {
+    <div class="profile" #profile>
+      <button
+        #profileButton
+        type="button"
+        class="profile-toggle"
+        [attr.aria-expanded]="profileOpen()"
+        [attr.aria-controls]="profileOpen() ? 'profile-actions' : null"
+        (click)="toggleProfile()"
+      >
+        <span class="profile-icon" aria-hidden="true"></span>
+        <span class="profile-summary">
+          <strong>{{ session.nome ?? session.email }}</strong>
+          <small>{{ primaryProfile() }}</small>
+        </span>
+        <span class="profile-chevron" aria-hidden="true"></span>
+      </button>
+      @if (profileOpen()) {
+        <div class="profile-actions" id="profile-actions">
+          <a routerLink="/conta" (click)="mainContent.focus()">Acessar Perfil</a>
+          <button type="button" (click)="auth.logout()">Sair</button>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="guest-actions">
+      <a class="guest-login" routerLink="/entrar">Entrar</a>
+      <a class="button-secondary small" routerLink="/cadastro">Criar conta</a>
+    </div>
+  }
+</header>
+
+<div class="library-body">
+  @if (navigationOpen()) {
+    <button
+      type="button"
+      class="navigation-backdrop"
+      tabindex="-1"
+      aria-hidden="true"
+      (click)="navigationOpen.set(false); navigationButton.focus()"
+    ></button>
+  }
+  <aside class="library-sidebar" [class.is-open]="navigationOpen()">
+    <nav
+      #navigation
+      id="library-navigation"
+      class="site-nav"
+      aria-label="Navegação principal"
+      (click)="navigationOpen() && mainContent.focus()"
+    >
+      <section aria-labelledby="books-navigation-label">
+        <h2 id="books-navigation-label">Livros</h2>
+        <a routerLink="/livros" routerLinkActive="active" ariaCurrentWhenActive="page">Catálogo</a>
+        @if (auth.session()) {
+          <a routerLink="/emprestimos" routerLinkActive="active" ariaCurrentWhenActive="page">Meus empréstimos</a>
+        }
+      </section>
+
+      @if (auth.isStaff()) {
+        <section aria-labelledby="operations-navigation-label">
+          <h2 id="operations-navigation-label">Operacional</h2>
+          <a routerLink="/balcao" routerLinkActive="active" ariaCurrentWhenActive="page">Balcão</a>
+          <a
+            routerLink="/acervo"
+            [class.active]="collectionActive()"
+            [attr.aria-current]="collectionActive() ? 'page' : null"
+          >Acervo</a>
+        </section>
+
+        <section aria-labelledby="system-navigation-label">
+          <h2 id="system-navigation-label">Sistema</h2>
+          <a routerLink="/acervo/autores" routerLinkActive="active" ariaCurrentWhenActive="page">Autores</a>
+          <a routerLink="/acervo/generos" routerLinkActive="active" ariaCurrentWhenActive="page">Gêneros</a>
+          @if (auth.hasRole('ADMIN')) {
+            <a routerLink="/admin/usuarios" routerLinkActive="active" ariaCurrentWhenActive="page">Usuários</a>
+          }
+        </section>
+      }
+    </nav>
+  </aside>
+
+  <div class="library-content">
+    <main id="main" #mainContent tabindex="-1"><router-outlet /></main>
+    <footer class="site-footer">
+      <span>Catálogo de Livros</span>
+      <span>Pagamentos de multa são simulados.</span>
+    </footer>
+  </div>
+</div>

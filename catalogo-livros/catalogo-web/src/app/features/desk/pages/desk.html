@@ -1,0 +1,138 @@
+<section class="page">
+  <header class="page-heading desk-heading">
+    <h1 tabindex="-1">Balcão de atendimento</h1>
+    <div class="actions">
+      <button type="button" class="button-secondary" (click)="open('code')">Retirar com código</button>
+      <button type="button" class="button-primary" (click)="open('attendance')">Atender leitor</button>
+    </div>
+  </header>
+
+  @if (summary(); as data) {
+    <dl class="desk-metrics" aria-label="Resumo do balcão">
+      <div><dt>Reservas aguardando</dt><dd>{{ data.reservedCount }}</dd></div>
+      <div><dt>Emprestados</dt><dd>{{ data.activeCount }}</dd></div>
+      <div><dt>Em atraso</dt><dd>{{ data.overdueCount }}</dd></div>
+      <div><dt>Multas pendentes</dt><dd>{{ price(data.pendingFinesInCents) }}</dd></div>
+      <div><dt>Multas pagas</dt><dd>{{ price(data.paidFinesInCents) }}</dd></div>
+    </dl>
+  }
+
+  <form appListFilters [formGroup]="filters" (ngSubmit)="apply()" (clear)="clearFilters()">
+    <div class="field">
+      <label for="desk-query">Livro ou leitor</label>
+      <input id="desk-query" type="search" formControlName="q" placeholder="Título, nome ou e-mail" />
+    </div>
+    <div class="field">
+      <label for="desk-scope">Fila</label>
+      <select id="desk-scope" formControlName="pending">
+        <option [ngValue]="true">Pendências</option>
+        <option [ngValue]="false">Todos os registros</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="desk-status">Situação</label>
+      <select id="desk-status" formControlName="status" (change)="selectStatus()">
+        <option [ngValue]="null">Todas</option>
+        @for (status of statuses; track status) {
+          <option [ngValue]="status">{{ labels[status] }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="desk-from">Prazo inicial</label>
+      <input id="desk-from" type="date" formControlName="from" (input)="filters.controls.deadline.setValue('TODOS')" />
+    </div>
+    <div class="field">
+      <label for="desk-to">Prazo final</label>
+      <input id="desk-to" type="date" formControlName="to" (input)="filters.controls.deadline.setValue('TODOS')" />
+    </div>
+    <div class="desk-deadlines" role="group" aria-label="Atalhos de prazo">
+      @for (deadline of deadlines; track deadline.value) {
+        <button type="button" class="button-secondary small"
+          [attr.aria-pressed]="list.filter().deadline === deadline.value"
+          (click)="setDeadline(list.filter().deadline === deadline.value ? 'TODOS' : deadline.value)">
+          {{ deadline.label }}
+        </button>
+      }
+    </div>
+  </form>
+
+  @if (datesError()) { <p class="notice error" role="alert">{{ datesError() }}</p> }
+  @if (result()) { <p class="notice success" role="status">{{ result() }}</p> }
+
+  @if (list.loading()) {
+    <p class="page-message" role="status">Carregando fila…</p>
+  } @else if (list.error()) {
+    <p class="notice error" role="alert">{{ list.error() }}</p>
+    <button type="button" class="button-secondary" (click)="list.refresh()">Tentar novamente</button>
+  } @else if (!list.items().length) {
+    <div class="empty-state"><h2>Nenhum empréstimo encontrado.</h2></div>
+  } @else {
+    <div class="table-wrap panel desk-queue">
+      <table>
+        <thead><tr><th>Livro</th><th>Leitor</th><th>Situação</th><th>Prazo</th><th>Ação</th></tr></thead>
+        <tbody>
+          @for (loan of list.items(); track loan.id) {
+            <tr>
+              <td><strong>{{ loan.bookTitle }}</strong></td>
+              <td>{{ loan.readerName }}<small>{{ loan.readerEmail }}</small></td>
+              <td>
+                <span [class]="'status-badge status-' + (loan.overdue ? 'overdue' : loan.status.toLowerCase())">
+                  {{ loan.overdue ? 'Em atraso' : labels[loan.status] }}
+                </span>
+              </td>
+              <td>
+                @if (loan.status === 'RESERVED' && loan.pickupDeadline) {
+                  <small>Retirar até</small>{{ date(loan.pickupDeadline) }}
+                } @else if (loan.status === 'ACTIVE' && loan.dueAt) {
+                  <small>Devolver até</small>{{ day(loan.dueAt) }}
+                } @else { — }
+              </td>
+              <td>
+                @if (loan.status === 'ACTIVE') {
+                  <button type="button" class="button-secondary small" (click)="open('return', loan)">Devolver</button>
+                } @else if (loan.canPickup) {
+                  <button type="button" class="button-secondary small" (click)="open('attendance', loan)">Confirmar retirada</button>
+                } @else { — }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (!list.error()) {
+    <app-list-pagination label="Paginação da fila do balcão" [state]="list.pagination()"
+      (pageChange)="list.load($event)" (sizeChange)="list.resize($event)" />
+  }
+
+  @switch (dialog()) {
+    @case ('code') {
+      <app-modal title="Retirar com código" [pending]="busy()" (dismissed)="dialog.set(null)">
+        <app-desk-pickup [(busy)]="busy" (pickupConfirmed)="confirmed($event)" />
+      </app-modal>
+    }
+    @case ('attendance') {
+      <app-modal title="Atender leitor" [pending]="busy()" [wide]="true" (dismissed)="dialog.set(null)">
+        <app-desk-attendance [initialReservation]="selected()" [(busy)]="busy" (completed)="confirmed($event)" />
+      </app-modal>
+    }
+    @case ('return') {
+      @if (selected(); as loan) {
+        <app-modal title="Confirmar devolução" [pending]="busy()" (dismissed)="dialog.set(null)">
+          <dl class="facts">
+            <div><dt>Livro</dt><dd>{{ loan.bookTitle }}</dd></div>
+            <div><dt>Leitor</dt><dd>{{ loan.readerName }}</dd></div>
+            @if (loan.dueAt) { <div><dt>Prazo</dt><dd>{{ day(loan.dueAt) }}</dd></div> }
+          </dl>
+          @if (loan.overdue) { <p class="notice">Em atraso. A multa será calculada ao confirmar.</p> }
+          @if (returnError()) { <p class="notice error" role="alert">{{ returnError() }}</p> }
+          <div class="dialog-actions">
+            <button type="button" class="button-secondary" [disabled]="busy()" (click)="dialog.set(null)">Cancelar</button>
+            <button type="button" class="button-primary" [disabled]="busy()" (click)="confirmReturn()">Confirmar devolução</button>
+          </div>
+        </app-modal>
+      }
+    }
+  }
+</section>

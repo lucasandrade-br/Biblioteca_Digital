@@ -1,0 +1,97 @@
+<section class="page">
+  <div class="page-heading">
+    <h1 tabindex="-1">{{ labels().heading }}</h1>
+    <button type="button" class="button-primary" (click)="openEditor()">{{ labels().create }}</button>
+  </div>
+
+  <form appListFilters [formGroup]="filters" (ngSubmit)="list.apply(filters.getRawValue())" (clear)="clearFilters()">
+    <div class="field">
+      <label for="q">Buscar</label>
+      <input id="q" type="search" formControlName="q" [placeholder]="kind() === 'author' ? 'Nome ou nacionalidade' : 'Nome do gênero'" />
+    </div>
+  </form>
+
+  @if (message(); as current) {
+    <div class="notice" [class.success]="current.ok" [class.error]="!current.ok" role="status">{{ current.text }}</div>
+  }
+  @if (list.error()) {
+    <div class="notice error" role="alert">{{ list.error() }}</div>
+    <button type="button" class="button-secondary" (click)="list.refresh()">Tentar novamente</button>
+  }
+  @if (list.loading()) {
+    <p class="page-message" role="status">Carregando…</p>
+  } @else if (!list.error() && !list.items().length) {
+    <div class="empty-state"><h2>{{ list.filter().q.trim() ? "Nenhum resultado encontrado." : labels().empty }}</h2></div>
+  }
+  @if (!list.error() && list.items().length) {
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Nome</th>
+            @if (kind() === 'author') {
+              <th scope="col">Nacionalidade</th>
+            }
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (record of list.items(); track record.id) {
+            <tr>
+              <td>{{ record.name }}</td>
+              @if (kind() === 'author') {
+                <td>{{ record.nationality || '—' }}</td>
+              }
+              <td>
+                <div class="row-actions">
+                  <button type="button" class="button-secondary small"
+                    (click)="openEditor(record)">Editar</button>
+                  <button type="button" class="button-secondary small"
+                    [disabled]="deleting() || list.loading()" (click)="delete(record)">Excluir</button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (!list.error()) {
+    <app-list-pagination label="Paginação dos registros" [state]="list.pagination()"
+      (pageChange)="list.load($event)" (sizeChange)="list.resize($event)" />
+  }
+
+  @if (editorOpen()) {
+    <app-modal [title]="editingId() === null ? labels().create : labels().edit"
+      [pending]="pending()" (dismissed)="editorOpen.set(false)">
+      @if (editorError()) {
+        <div class="notice error" role="alert">{{ editorError() }}</div>
+      }
+      <form class="dialog-form" [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="pending()" novalidate>
+        <div class="field">
+          <label for="record-name">Nome</label>
+          <input id="record-name" formControlName="name" [maxlength]="labels().nameMax"
+            [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid"
+            aria-describedby="record-name-error" />
+          <small class="field-error" id="record-name-error">
+            @if (form.controls.name.touched && form.controls.name.invalid) { Informe o nome. }
+          </small>
+        </div>
+        @if (kind() === 'author') {
+          <div class="field">
+            <label for="nationality">Nacionalidade (opcional)</label>
+            <input id="nationality" formControlName="nationality" maxlength="80" />
+          </div>
+        }
+        <div class="dialog-actions">
+          <button type="button" class="button-secondary" [disabled]="pending()"
+            (click)="editorOpen.set(false)">Cancelar</button>
+          <button class="button-primary" type="submit" [disabled]="pending()">
+            {{ pending() ? 'Salvando…' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    </app-modal>
+  }
+</section>

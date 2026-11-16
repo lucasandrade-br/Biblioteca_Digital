@@ -1,0 +1,136 @@
+<section class="page">
+  <header class="page-heading">
+    <h1 tabindex="-1">Meus empréstimos</h1>
+    <a class="button-secondary" routerLink="/livros">Explorar catálogo</a>
+  </header>
+
+  <nav class="loan-stages" aria-label="Etapas dos empréstimos">
+    @for (item of views; track item.key) {
+      <a routerLink="/emprestimos" [queryParams]="{ etapa: item.key }"
+        [attr.aria-current]="view() === item ? 'page' : null">{{ item.label }}</a>
+    }
+  </nav>
+
+  <form appListFilters [formGroup]="filters" (ngSubmit)="apply()" (clear)="clearFilters()">
+    <div class="field">
+      <label for="q">Buscar</label>
+      <input id="q" type="search" formControlName="q" placeholder="Título do livro" />
+    </div>
+    @if (view().statuses.length) {
+      <div class="field">
+        <label for="status">Situação</label>
+        <select id="status" formControlName="status">
+          <option [ngValue]="null">Todas</option>
+          @for (status of view().statuses; track status) {
+            <option [ngValue]="status">{{ labels[status] }}</option>
+          }
+        </select>
+      </div>
+    }
+  </form>
+
+  @if (visibleMessage(); as current) {
+    <p class="notice" [class.success]="current.ok" [class.error]="!current.ok" role="status">{{ current.text }}</p>
+  }
+  @if (list.loading()) {
+    <p class="page-message" role="status">Carregando empréstimos…</p>
+  } @else if (list.error()) {
+    <p class="notice error" role="alert">{{ list.error() }}</p>
+    <button type="button" class="button-secondary" (click)="list.refresh()">Tentar novamente</button>
+  } @else if (!list.items().length) {
+    <div class="empty-state">
+      <h2>{{ list.filter().q.trim() || list.filter().status ? 'Nenhum resultado encontrado.' : view().empty }}</h2>
+    </div>
+  } @else {
+    <div class="loan-cards">
+      @for (loan of list.items(); track loan.id) {
+        <article class="loan-preview panel">
+          <div class="loan-preview-header">
+            <h2><a [routerLink]="['/livros', loan.bookId]">{{ loan.bookTitle }}</a></h2>
+            <span [class]="'status-badge status-' + (loan.overdue ? 'overdue' : loan.status.toLowerCase())">
+              {{ loan.overdue ? 'Em atraso' : labels[loan.status] }}
+            </span>
+          </div>
+          <p>
+            @if (loan.status === 'RESERVED' && loan.pickupDeadline) {
+              Retirar até <strong>{{ date(loan.pickupDeadline) }}</strong>
+            } @else if (loan.status === 'ACTIVE' && loan.dueAt) {
+              Devolver até <strong>{{ day(loan.dueAt) }}</strong>
+            } @else if (loan.returnedAt) {
+              Devolvido em <strong>{{ day(loan.returnedAt) }}</strong>
+            } @else if (loan.status === 'EXPIRED' && loan.pickupDeadline) {
+              Prazo encerrado em <strong>{{ day(loan.pickupDeadline) }}</strong>
+            } @else {
+              <strong>{{ day(loan.events.at(-1)?.createdAt ?? loan.requestedAt) }}</strong>
+            }
+          </p>
+          @if (loan.fineStatus === 'PENDING') {
+            <p class="loan-fine">Multa pendente · {{ price(loan.fineInCents) }}</p>
+          }
+          <div class="actions">
+            @if (loan.canPickup && loan.pickupCode) {
+              <button type="button" class="button-primary small" (click)="open(loan, true)">Ver código</button>
+            }
+            <button type="button" class="button-secondary small" (click)="open(loan)">Ver detalhes</button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  @if (!list.error()) {
+    <app-list-pagination label="Paginação dos meus empréstimos" [state]="list.pagination()"
+      (pageChange)="list.load($event)" (sizeChange)="list.resize($event)" />
+  }
+
+  @if (detail(); as loan) {
+    <app-modal [title]="codeOpen() ? 'Código de retirada' : loan.bookTitle" [pending]="busy()" (dismissed)="detail.set(null)">
+      @if (codeOpen()) {
+        @if (loan.canPickup && loan.pickupCode && loan.pickupDeadline) {
+          <div class="pickup-box">
+            <app-pickup-qr [value]="loan.pickupCode" [label]="loan.bookTitle" />
+            <div>
+              <strong>{{ loan.bookTitle }}</strong>
+              <p>Código de retirada: <strong>{{ loan.pickupCode }}</strong></p>
+              <p>Apresente no balcão até {{ date(loan.pickupDeadline) }}.</p>
+            </div>
+          </div>
+        }
+      } @else {
+        <dl class="facts">
+          <div><dt>Situação</dt><dd>{{ loan.overdue ? 'Em atraso' : labels[loan.status] }}</dd></div>
+          @if (loan.pickedUpAt) { <div><dt>Retirado em</dt><dd>{{ date(loan.pickedUpAt) }}</dd></div> }
+          @if (loan.dueAt) { <div><dt>Prazo de devolução</dt><dd>{{ day(loan.dueAt) }}</dd></div> }
+          @if (loan.returnedAt) { <div><dt>Devolvido em</dt><dd>{{ date(loan.returnedAt) }}</dd></div> }
+          @if (loan.pickedUpAt) { <div><dt>Renovações</dt><dd>{{ loan.renewalCount }} de {{ loan.maxRenewals }}</dd></div> }
+          @if (loan.fineStatus !== 'NONE') {
+            <div><dt>Multa</dt><dd>{{ price(loan.fineInCents) }} · {{ loan.fineStatus === 'PAID' ? 'paga' : 'pendente' }}</dd></div>
+          }
+        </dl>
+
+        @if (message(); as current) {
+          <p class="notice" [class.success]="current.ok" [class.error]="!current.ok" role="status">{{ current.text }}</p>
+        }
+        <div class="actions">
+          @if (loan.canCancel) {
+            <button type="button" class="button-secondary" [disabled]="busy()" (click)="cancel(loan)">Cancelar reserva</button>
+          }
+          @if (loan.canRenew) {
+            <button type="button" class="button-secondary" [disabled]="busy()" (click)="renew(loan)">Renovar empréstimo</button>
+          }
+          @if (loan.fineStatus === 'PENDING') {
+            <button type="button" class="button-primary" [disabled]="busy()" (click)="payFine(loan)">Pagar multa (simulado)</button>
+          }
+        </div>
+        <section class="timeline" aria-label="Histórico de status">
+          <h3>Histórico</h3>
+          <ol>
+            @for (event of loan.events; track $index) {
+              <li><strong>{{ event.description }}</strong><span>{{ date(event.createdAt) }} · {{ event.actorName }}</span></li>
+            }
+          </ol>
+        </section>
+      }
+    </app-modal>
+  }
+</section>

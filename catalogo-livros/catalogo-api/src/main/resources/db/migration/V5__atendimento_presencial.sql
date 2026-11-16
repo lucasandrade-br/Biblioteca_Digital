@@ -1,0 +1,5 @@
+ALTER TABLE usuarios ADD COLUMN activation_hash VARCHAR(255);
+ALTER TABLE usuarios ADD COLUMN activation_expires_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE loans ALTER COLUMN pickup_code DROP NOT NULL;
+ALTER TABLE loans ALTER COLUMN pickup_deadline DROP NOT NULL;

@@ -1,0 +1,11 @@
+# Pacote de entrega gerado a partir do projeto
+/Catalogo_Livros_Entrega.zip
+
+# Metadados locais de IDE e do sistema
+.project
+Thumbs.db
+
+# Configuração local com credenciais
+.env
+.env.*
+!.env.example
