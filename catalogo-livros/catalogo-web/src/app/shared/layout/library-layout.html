@@ -6,12 +6,13 @@
       #navigationButton
       type="button"
       class="navigation-toggle"
-      [attr.aria-expanded]="navigationOpen()"
+      [attr.aria-expanded]="mobile() ? navigationOpen() : !compact()"
       aria-controls="library-navigation"
-      [attr.aria-label]="navigationOpen() ? 'Fechar navegação' : 'Abrir navegação'"
+      [attr.aria-label]="mobile() ? (navigationOpen() ? 'Fechar navegação' : 'Abrir navegação')
+        : (compact() ? 'Expandir navegação' : 'Recolher navegação')"
       (click)="toggleNavigation()"
     >
-      <span class="navigation-icon" aria-hidden="true"></span>
+      <app-interface-icon name="menu" />
     </button>
     <a class="brand" routerLink="/livros" aria-label="Biblioteca, catálogo de livros">
       <span class="brand-icon" aria-hidden="true"></span> Biblioteca Digital
@@ -50,7 +51,7 @@
   }
 </header>
 
-<div class="library-body">
+<div class="library-body" [class.compact-navigation]="compact()">
   @if (navigationOpen()) {
     <button
       type="button"
@@ -61,39 +62,27 @@
     ></button>
   }
   <aside class="library-sidebar" [class.is-open]="navigationOpen()">
-    <nav
-      #navigation
-      id="library-navigation"
-      class="site-nav"
-      aria-label="Navegação principal"
-      (click)="navigationOpen() && mainContent.focus()"
-    >
-      <section aria-labelledby="books-navigation-label">
-        <h2 id="books-navigation-label">Livros</h2>
-        <a routerLink="/livros" routerLinkActive="active" ariaCurrentWhenActive="page">Catálogo</a>
-        @if (auth.session()) {
-          <a routerLink="/emprestimos" routerLinkActive="active" ariaCurrentWhenActive="page">Meus empréstimos</a>
-        }
-      </section>
-
-      @if (auth.isStaff()) {
-        <section aria-labelledby="operations-navigation-label">
-          <h2 id="operations-navigation-label">Operacional</h2>
-          <a routerLink="/balcao" routerLinkActive="active" ariaCurrentWhenActive="page">Balcão</a>
-          <a
-            routerLink="/acervo"
-            [class.active]="collectionActive()"
-            [attr.aria-current]="collectionActive() ? 'page' : null"
-          >Acervo</a>
-        </section>
-
-        <section aria-labelledby="system-navigation-label">
-          <h2 id="system-navigation-label">Sistema</h2>
-          <a routerLink="/acervo/autores" routerLinkActive="active" ariaCurrentWhenActive="page">Autores</a>
-          <a routerLink="/acervo/generos" routerLinkActive="active" ariaCurrentWhenActive="page">Gêneros</a>
-          @if (auth.hasRole('ADMIN')) {
-            <a routerLink="/admin/usuarios" routerLinkActive="active" ariaCurrentWhenActive="page">Usuários</a>
+    <nav #navigation id="library-navigation" class="site-nav" aria-label="Navegação principal">
+      @for (group of categories(); track group.icon) {
+        <section [attr.aria-label]="group.label">
+          @if (compact()) {
+            <button type="button" class="category-toggle" [class.current-category]="categoryIsCurrent(group)"
+              [attr.aria-label]="group.label" [attr.title]="group.label"
+              [attr.aria-expanded]="openCategory() === group.icon" [attr.aria-controls]="'nav-' + group.icon"
+              (click)="toggleCategory(group.icon)">
+              <app-interface-icon [name]="group.icon" />
+            </button>
           }
+          <div class="navigation-links" [id]="'nav-' + group.icon"
+            [hidden]="compact() && openCategory() !== group.icon">
+            <h2>{{ group.label }}</h2>
+            @for (link of group.links; track link.href) {
+              <a [routerLink]="link.href" [class.active]="isCurrent(link.href)"
+                [attr.aria-current]="isCurrent(link.href) ? 'page' : null" (click)="followLink(mainContent)">
+                {{ link.label }}
+              </a>
+            }
+          </div>
         </section>
       }
     </nav>
@@ -101,9 +90,6 @@
 
   <div class="library-content">
     <main id="main" #mainContent tabindex="-1"><router-outlet /></main>
-    <footer class="site-footer">
-      <span>Catálogo de Livros</span>
-      <span>Pagamentos de multa são simulados.</span>
-    </footer>
+
   </div>
 </div>

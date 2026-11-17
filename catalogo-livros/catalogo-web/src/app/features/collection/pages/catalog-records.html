@@ -32,7 +32,7 @@
             @if (kind() === 'author') {
               <th scope="col">Nacionalidade</th>
             }
-            <th scope="col">Ações</th>
+            <th scope="col" class="action-column">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -42,12 +42,11 @@
               @if (kind() === 'author') {
                 <td>{{ record.nationality || '—' }}</td>
               }
-              <td>
+              <td class="action-column">
                 <div class="row-actions">
-                  <button type="button" class="button-secondary small"
-                    (click)="openEditor(record)">Editar</button>
-                  <button type="button" class="button-secondary small"
-                    [disabled]="deleting() || list.loading()" (click)="delete(record)">Excluir</button>
+                  <button type="button" appRowAction="edit" label="Editar" (click)="openEditor(record)"></button>
+                  <button type="button" appRowAction="delete" label="Excluir"
+                    [disabled]="deleting() || list.loading()" (click)="delete(record)"></button>
                 </div>
               </td>
             </tr>

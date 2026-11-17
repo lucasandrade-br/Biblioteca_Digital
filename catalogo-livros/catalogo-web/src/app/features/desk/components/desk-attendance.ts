@@ -1,15 +1,14 @@
 import { Component, DestroyRef, OnInit, afterNextRender, inject, input, model, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Observable, finalize } from 'rxjs';
 import { apiErrorMessage } from '../../../core/http/api-error';
 import { ListPagination } from '../../../shared/components/list-pagination';
 import { formatDate } from '../../../shared/format';
-import { notBlank } from '../../../shared/forms/not-blank';
 import { createPagedList } from '../../../shared/listing/paged-list';
 import { BookApi } from '../../books/data-access/book-api';
 import { Loan } from '../../loans/models/loan.models';
-import { DeskApi, DeskReader, Enrollment, Preparation } from '../data-access/desk-api';
+import { DeskApi, DeskReader, Preparation } from '../data-access/desk-api';
 
 @Component({
   selector: 'app-desk-attendance',
@@ -36,18 +35,12 @@ export class DeskAttendance implements OnInit {
   protected readonly bookQuery = this.forms.control('');
   protected readonly readerSearched = signal(false);
   protected readonly bookSearched = signal(false);
-  protected readonly enrolling = signal(false);
   protected readonly reader = signal<DeskReader | null>(null);
   protected readonly book = signal<{ id: number; title: string } | null>(null);
   protected readonly preparation = signal<Preparation | null>(null);
   protected readonly identityChecked = signal(false);
-  protected readonly credential = signal<Enrollment | null>(null);
   protected readonly error = signal('');
   protected readonly date = formatDate;
-  protected readonly registration = this.forms.group({
-    nome: ['', [notBlank, Validators.maxLength(255)]],
-    email: ['', [notBlank, Validators.email, Validators.maxLength(255)]],
-  });
   private key: string | null = null;
 
   constructor() {
@@ -60,7 +53,7 @@ export class DeskAttendance implements OnInit {
     const loan = this.initialReservation();
     if (!loan) return;
     this.reader.set({
-      id: loan.readerId, nome: loan.readerName, email: loan.readerEmail, ativo: true, activationPending: false,
+      id: loan.readerId, nome: loan.readerName, email: loan.readerEmail, ativo: true,
     });
     this.book.set({ id: loan.bookId, title: loan.bookTitle });
   }
@@ -79,8 +72,6 @@ export class DeskAttendance implements OnInit {
 
   protected chooseReader(reader: DeskReader | null): void {
     this.reader.set(reader);
-    this.credential.set(null);
-    this.enrolling.set(false);
     this.book.set(null);
     this.bookQuery.reset();
     this.bookSearched.set(false);
@@ -91,21 +82,6 @@ export class DeskAttendance implements OnInit {
     this.book.set(book);
     this.resetPreparation();
     if (book) this.prepare();
-  }
-
-  protected register(): void {
-    this.registration.markAllAsTouched();
-    if (this.registration.invalid) return;
-    const { nome, email } = this.registration.getRawValue();
-    this.run(this.api.enroll({ nome: nome.trim(), email: email.trim() }), (result) => {
-      this.chooseReader(result.reader);
-      this.credential.set(result);
-    }, 'Não foi possível cadastrar o leitor.');
-  }
-
-  protected reissue(reader: DeskReader): void {
-    this.run(this.api.reissue(reader.id), (result) => this.credential.set(result),
-      'Não foi possível emitir um código de ativação.');
   }
 
   protected prepare(): void {

@@ -5,9 +5,6 @@
     @if (registered) {
       <div class="notice success" role="status">Conta criada! Entre com seu e-mail e senha.</div>
     }
-    @if (activated) {
-      <div class="notice success" role="status">Conta ativada. Entre com sua nova senha.</div>
-    }
     @if (expired) {
       <div class="notice" role="status">Sua sessão expirou. Entre novamente para continuar.</div>
     }
@@ -65,6 +62,5 @@
       </button>
     </form>
     <p class="form-switch">Ainda não tem uma conta? <a routerLink="/cadastro">Cadastre-se</a></p>
-    <p class="form-switch"><a routerLink="/ativar-conta">Ativar conta cadastrada no balcão</a></p>
   </div>
 </app-auth-layout>

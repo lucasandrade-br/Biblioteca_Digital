@@ -18,13 +18,6 @@ export interface DeskReader {
   nome: string;
   email: string;
   ativo: boolean;
-  activationPending: boolean;
-}
-
-export interface Enrollment {
-  reader: DeskReader;
-  activationCode: string | null;
-  expiresAt: string | null;
 }
 
 export interface Preparation {
@@ -70,14 +63,6 @@ export class DeskApi {
 
   searchReaders(q: string, page: number, size: number) {
     return this.http.get<Page<DeskReader>>(`${this.api}/balcao/leitores`, { params: { q, page, size } });
-  }
-
-  enroll(reader: { nome: string; email: string }) {
-    return this.http.post<Enrollment>(`${this.api}/balcao/leitores`, reader);
-  }
-
-  reissue(readerId: number) {
-    return this.http.post<Enrollment>(`${this.api}/balcao/leitores/${readerId}/codigo-ativacao`, {});
   }
 
   prepare(readerId: number, bookId: number) {

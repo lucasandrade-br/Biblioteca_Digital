@@ -166,13 +166,8 @@ class LoanIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void deskRegistersAnIdempotentDirectLoanForANewReaderBeforeActivation() throws Exception {
-        var enrolled = mockMvc.perform(post("/api/balcao/leitores").header("Authorization", bearer(staffToken))
-                .contentType(MediaType.APPLICATION_JSON).content("""
-                    {"nome":"Leitora do balcão","email":"presencial@exemplo.com"}
-                    """))
-            .andExpect(status().isCreated()).andReturn();
-        Long readerId = usuarioRepository.findByEmailIgnoreCase("presencial@exemplo.com").orElseThrow().getId();
+    void deskRegistersAnIdempotentDirectLoanForAnExistingReader() throws Exception {
+        Long readerId = usuarioRepository.findByEmailIgnoreCase("leitor@exemplo.com").orElseThrow().getId();
         String key = "atendimento-direto";
         var loan = lendAtDesk(readerId, bookId, key, status().isOk());
         long id = readId(loan);
@@ -189,19 +184,8 @@ class LoanIntegrationTest extends IntegrationTestSupport {
             .andExpect(jsonPath("$.events[0].actorName").value("Bibliotecaria"));
         assertEquals(2, availableCopies(bookId));
 
-        String activationCode = readField(enrolled, "activationCode");
-        mockMvc.perform(post("/api/auth/ativar").contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"email":"presencial@exemplo.com","code":"%s","password":"senha123nova"}
-                    """.formatted(activationCode)))
-            .andExpect(status().isNoContent());
-        var login = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"email":"presencial@exemplo.com","password":"senha123nova"}
-                    """))
-            .andExpect(status().isOk()).andReturn();
         mockMvc.perform(get("/api/emprestimos").param("scope", "HISTORICO")
-                .header("Authorization", bearer(readField(login, "token"))))
+                .header("Authorization", bearer(readerToken)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(id));
         lendAtDesk(readerId, bookId, "atendimento-multa", status().isConflict());
     }

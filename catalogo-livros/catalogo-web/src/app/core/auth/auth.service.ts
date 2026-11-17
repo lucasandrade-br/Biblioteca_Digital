@@ -67,10 +67,6 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  activate(request: { email: string; code: string; password: string }) {
-    return this.http.post<void>(`${this.api}/auth/ativar`, request);
-  }
-
   register(user: CreateUser) {
     return this.http.post<void>(`${this.api}/usuarios`, user);
   }

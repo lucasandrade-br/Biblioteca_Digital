@@ -29,17 +29,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
         @Param("active") Boolean active, Pageable pageable
     );
 
-    @Query("""
-        SELECT u FROM Usuario u
-        WHERE :role MEMBER OF u.perfis
-          AND (LOCATE(:term, LOWER(u.nome)) > 0 OR LOCATE(:term, LOWER(u.email)) > 0)
-        """)
-    Page<Usuario> searchReaders(@Param("term") String term, @Param("role") UsuarioPerfil role, Pageable pageable);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT u FROM Usuario u WHERE u.email = :email")
-    Optional<Usuario> findWithLockByEmail(@Param("email") String email);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Usuario> findWithLockById(Long id);
 }

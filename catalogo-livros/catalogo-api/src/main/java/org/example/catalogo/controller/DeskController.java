@@ -5,13 +5,9 @@ import org.example.catalogo.dto.LoanSummaryResponse;
 import org.example.catalogo.dto.PickupRequest;
 import org.example.catalogo.security.UserSS;
 import java.time.LocalDate;
-import org.example.catalogo.service.ReaderEnrollment;
 import org.example.catalogo.service.LoanService;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
 import org.example.catalogo.service.DeskService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -40,20 +36,13 @@ public class DeskController {
     private final DeskService deskService;
 
     private final LoanService loans;
-    private final ReaderEnrollment enrollment;
 
-    public DeskController(DeskService deskService, LoanService loans, ReaderEnrollment enrollment) {
+    public DeskController(DeskService deskService, LoanService loans) {
         this.deskService = deskService;
         this.loans = loans;
-        this.enrollment = enrollment;
     }
 
     public record DirectLoan(@NotNull @Positive Long readerId, @NotNull @Positive Long bookId) {}
-
-    public record ReaderRegistration(
-        @NotBlank @Size(max = 255) String nome,
-        @NotBlank @Email @Size(max = 255) String email
-    ) {}
 
     public record Preparation(LoanResponse reservation, int availableCopies) {}
 
@@ -73,24 +62,12 @@ public class DeskController {
     }
 
     @GetMapping("/leitores")
-    public ResponseEntity<Page<ReaderEnrollment.Reader>> searchReaders(
+    public ResponseEntity<Page<DeskService.Reader>> searchReaders(
         @RequestParam String q,
         @PageableDefault(size = 12, sort = "nome") Pageable pageable
     ) {
-        var result = enrollment.search(q, PageHttpMapper.toQuery(pageable));
+        var result = deskService.searchReaders(q, PageHttpMapper.toQuery(pageable));
         return ResponseEntity.ok(PageHttpMapper.toPage(result, reader -> reader));
-    }
-
-    @PostMapping("/leitores")
-    public ResponseEntity<ReaderEnrollment.Enrollment> enroll(@RequestBody @Valid ReaderRegistration request) {
-        var result = enrollment.enroll(request.nome(), request.email());
-        return ResponseEntity.status(result.activationCode() == null ? 200 : 201)
-            .header("Cache-Control", "no-store").body(result);
-    }
-
-    @PostMapping("/leitores/{readerId}/codigo-ativacao")
-    public ResponseEntity<ReaderEnrollment.Enrollment> reissue(@PathVariable Long readerId) {
-        return ResponseEntity.ok().header("Cache-Control", "no-store").body(enrollment.reissue(readerId));
     }
 
     @GetMapping("/emprestimos/preparar")

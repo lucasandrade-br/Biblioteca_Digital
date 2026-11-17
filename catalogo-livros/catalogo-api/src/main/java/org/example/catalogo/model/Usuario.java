@@ -14,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -38,12 +37,6 @@ public class Usuario {
 
     @Column(nullable = false)
     private boolean ativo = true;
-
-    @Column(name = "activation_hash")
-    private String activationHash;
-
-    @Column(name = "activation_expires_at")
-    private Instant activationExpiresAt;
 
     @ElementCollection
     @CollectionTable(name = "usuario_perfis", joinColumns = @JoinColumn(name = "usuario_id"))
@@ -75,29 +68,6 @@ public class Usuario {
 
     public String getSenha() {
         return senha;
-    }
-
-    public boolean awaitsActivation() {
-        return activationHash != null;
-    }
-
-    public boolean activationIsValidAt(Instant now) {
-        return awaitsActivation() && activationExpiresAt.isAfter(now);
-    }
-
-    public String getActivationHash() {
-        return activationHash;
-    }
-
-    public void issueActivation(String hash, Instant expiresAt) {
-        this.activationHash = hash;
-        this.activationExpiresAt = expiresAt;
-    }
-
-    public void activateWithPassword(String passwordHash) {
-        this.senha = passwordHash;
-        this.activationHash = null;
-        this.activationExpiresAt = null;
     }
 
     public boolean isAtivo() {

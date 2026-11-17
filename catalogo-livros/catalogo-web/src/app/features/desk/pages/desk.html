@@ -2,53 +2,46 @@
   <header class="page-heading desk-heading">
     <h1 tabindex="-1">Balcão de atendimento</h1>
     <div class="actions">
-      <button type="button" class="button-secondary" (click)="open('code')">Retirar com código</button>
-      <button type="button" class="button-primary" (click)="open('attendance')">Atender leitor</button>
+      <button type="button" class="button-primary" (click)="open('pickup')">Realizar retirada</button>
     </div>
   </header>
 
-  @if (summary(); as data) {
-    <dl class="desk-metrics" aria-label="Resumo do balcão">
-      <div><dt>Reservas aguardando</dt><dd>{{ data.reservedCount }}</dd></div>
-      <div><dt>Emprestados</dt><dd>{{ data.activeCount }}</dd></div>
-      <div><dt>Em atraso</dt><dd>{{ data.overdueCount }}</dd></div>
-      <div><dt>Multas pendentes</dt><dd>{{ price(data.pendingFinesInCents) }}</dd></div>
-      <div><dt>Multas pagas</dt><dd>{{ price(data.paidFinesInCents) }}</dd></div>
-    </dl>
-  }
-
-  <form appListFilters [formGroup]="filters" (ngSubmit)="apply()" (clear)="clearFilters()">
-    <div class="field">
-      <label for="desk-query">Livro ou leitor</label>
-      <input id="desk-query" type="search" formControlName="q" placeholder="Título, nome ou e-mail" />
+  <form appListFilters class="desk-filters" [formGroup]="filters" (ngSubmit)="apply()" (clear)="clearFilters()">
+    <div class="desk-filter-primary">
+      <div class="field">
+        <label for="desk-query">Livro ou leitor</label>
+        <input id="desk-query" type="search" formControlName="q" placeholder="Título, nome ou e-mail" />
+      </div>
+      <div class="field">
+        <label for="desk-scope">Fila</label>
+        <select id="desk-scope" formControlName="pending">
+          <option [ngValue]="true">Pendências</option>
+          <option [ngValue]="false">Todos os registros</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="desk-status">Situação</label>
+        <select id="desk-status" formControlName="status" (change)="selectStatus()">
+          <option [ngValue]="null">Todas</option>
+          @for (status of statuses; track status) {
+            <option [ngValue]="status">{{ labels[status] }}</option>
+          }
+        </select>
+      </div>
     </div>
-    <div class="field">
-      <label for="desk-scope">Fila</label>
-      <select id="desk-scope" formControlName="pending">
-        <option [ngValue]="true">Pendências</option>
-        <option [ngValue]="false">Todos os registros</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="desk-status">Situação</label>
-      <select id="desk-status" formControlName="status" (change)="selectStatus()">
-        <option [ngValue]="null">Todas</option>
-        @for (status of statuses; track status) {
-          <option [ngValue]="status">{{ labels[status] }}</option>
-        }
-      </select>
-    </div>
-    <div class="field">
-      <label for="desk-from">Prazo inicial</label>
-      <input id="desk-from" type="date" formControlName="from" (input)="filters.controls.deadline.setValue('TODOS')" />
-    </div>
-    <div class="field">
-      <label for="desk-to">Prazo final</label>
-      <input id="desk-to" type="date" formControlName="to" (input)="filters.controls.deadline.setValue('TODOS')" />
+    <div class="desk-period">
+      <div class="field">
+        <label for="desk-from">Prazo inicial</label>
+        <input id="desk-from" type="date" formControlName="from" (input)="filters.controls.deadline.setValue('TODOS')" />
+      </div>
+      <div class="field">
+        <label for="desk-to">Prazo final</label>
+        <input id="desk-to" type="date" formControlName="to" (input)="filters.controls.deadline.setValue('TODOS')" />
+      </div>
     </div>
     <div class="desk-deadlines" role="group" aria-label="Atalhos de prazo">
       @for (deadline of deadlines; track deadline.value) {
-        <button type="button" class="button-secondary small"
+        <button type="button" class="desk-deadline"
           [attr.aria-pressed]="list.filter().deadline === deadline.value"
           (click)="setDeadline(list.filter().deadline === deadline.value ? 'TODOS' : deadline.value)">
           {{ deadline.label }}
@@ -70,7 +63,7 @@
   } @else {
     <div class="table-wrap panel desk-queue">
       <table>
-        <thead><tr><th>Livro</th><th>Leitor</th><th>Situação</th><th>Prazo</th><th>Ação</th></tr></thead>
+        <thead><tr><th>Livro</th><th>Leitor</th><th>Situação</th><th>Prazo</th><th scope="col" class="action-column">Ações</th></tr></thead>
         <tbody>
           @for (loan of list.items(); track loan.id) {
             <tr>
@@ -88,12 +81,14 @@
                   <small>Devolver até</small>{{ day(loan.dueAt) }}
                 } @else { — }
               </td>
-              <td>
-                @if (loan.status === 'ACTIVE') {
-                  <button type="button" class="button-secondary small" (click)="open('return', loan)">Devolver</button>
-                } @else if (loan.canPickup) {
-                  <button type="button" class="button-secondary small" (click)="open('attendance', loan)">Confirmar retirada</button>
-                } @else { — }
+              <td class="action-column">
+                <div class="row-actions">
+                  @if (loan.status === 'ACTIVE') {
+                    <button type="button" appRowAction="return" label="Devolver" (click)="open('return', loan)"></button>
+                  } @else if (loan.canPickup) {
+                    <button type="button" appRowAction="pickup" label="Confirmar retirada" (click)="open('pickup', loan)"></button>
+                  }
+                </div>
               </td>
             </tr>
           }
@@ -107,14 +102,20 @@
   }
 
   @switch (dialog()) {
-    @case ('code') {
-      <app-modal title="Retirar com código" [pending]="busy()" (dismissed)="dialog.set(null)">
-        <app-desk-pickup [(busy)]="busy" (pickupConfirmed)="confirmed($event)" />
-      </app-modal>
-    }
-    @case ('attendance') {
-      <app-modal title="Atender leitor" [pending]="busy()" [wide]="true" (dismissed)="dialog.set(null)">
-        <app-desk-attendance [initialReservation]="selected()" [(busy)]="busy" (completed)="confirmed($event)" />
+    @case ('pickup') {
+      <app-modal title="Realizar retirada" [pending]="busy()" [wide]="pickupMethod() === 'reader'"
+        (dismissed)="dialog.set(null)">
+        <div class="pickup-methods" role="group" aria-label="Forma de retirada">
+          <button type="button" class="button-secondary" [attr.aria-pressed]="pickupMethod() === 'code'"
+            [disabled]="busy()" (click)="pickupMethod.set('code')">Por código</button>
+          <button type="button" class="button-secondary" [attr.aria-pressed]="pickupMethod() === 'reader'"
+            [disabled]="busy()" (click)="pickupMethod.set('reader')">Pesquisar leitor</button>
+        </div>
+        @if (pickupMethod() === 'code') {
+          <app-desk-pickup [(busy)]="busy" (pickupConfirmed)="confirmed($event)" />
+        } @else {
+          <app-desk-attendance [initialReservation]="selected()" [(busy)]="busy" (completed)="confirmed($event)" />
+        }
       </app-modal>
     }
     @case ('return') {
@@ -134,5 +135,15 @@
         </app-modal>
       }
     }
+  }
+
+  @if (summary(); as data) {
+    <dl class="desk-metrics" aria-label="Resumo do balcão">
+      <div><dt>Reservas aguardando</dt><dd>{{ data.reservedCount }}</dd></div>
+      <div><dt>Emprestados</dt><dd>{{ data.activeCount }}</dd></div>
+      <div><dt>Em atraso</dt><dd>{{ data.overdueCount }}</dd></div>
+      <div><dt>Multas pendentes</dt><dd>{{ price(data.pendingFinesInCents) }}</dd></div>
+      <div><dt>Multas pagas</dt><dd>{{ price(data.paidFinesInCents) }}</dd></div>
+    </dl>
   }
 </section>

@@ -1,3 +1,4 @@
+import { RowAction } from '../../../shared/components/row-action';
 import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -38,7 +39,7 @@ type CatalogRecord = Genre & { nationality?: Author['nationality'] };
 
 @Component({
   selector: 'app-catalog-records',
-  imports: [ListFilters, ListPagination, Modal, ReactiveFormsModule],
+  imports: [RowAction, ListFilters, ListPagination, Modal, ReactiveFormsModule],
   templateUrl: './catalog-records.html',
 })
 export class CatalogRecords implements OnInit {

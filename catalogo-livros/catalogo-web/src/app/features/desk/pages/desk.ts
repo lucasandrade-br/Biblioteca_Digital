@@ -1,3 +1,4 @@
+import { RowAction } from '../../../shared/components/row-action';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -14,7 +15,7 @@ import { DeskAttendance } from '../components/desk-attendance';
 import { Deadline, DeskApi, DeskSummary } from '../data-access/desk-api';
 
 @Component({
-  imports: [ReactiveFormsModule, ListFilters, ListPagination, Modal, DeskPickup, DeskAttendance],
+  imports: [RowAction, ReactiveFormsModule, ListFilters, ListPagination, Modal, DeskPickup, DeskAttendance],
   templateUrl: './desk.html',
 })
 export class Desk implements OnInit {
@@ -35,7 +36,8 @@ export class Desk implements OnInit {
     () => 'Não foi possível carregar a fila de atendimento.',
   );
   protected readonly datesError = signal('');
-  protected readonly dialog = signal<'code' | 'attendance' | 'return' | null>(null);
+  protected readonly dialog = signal<'pickup' | 'return' | null>(null);
+  protected readonly pickupMethod = signal<'code' | 'reader'>('code');
   protected readonly selected = signal<Loan | null>(null);
   protected readonly busy = signal(false);
   protected readonly result = signal('');
@@ -82,7 +84,8 @@ export class Desk implements OnInit {
     this.apply();
   }
 
-  protected open(dialog: 'code' | 'attendance' | 'return', loan: Loan | null = null): void {
+  protected open(dialog: 'pickup' | 'return', loan: Loan | null = null): void {
+    if (dialog === 'pickup') this.pickupMethod.set(loan ? 'reader' : 'code');
     this.selected.set(loan);
     this.returnError.set('');
     this.dialog.set(dialog);

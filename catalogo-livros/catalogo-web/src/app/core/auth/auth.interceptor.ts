@@ -12,7 +12,6 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const isApi = request.url === api || request.url.startsWith(`${api}/`);
   const path = request.url.split('?')[0];
   const isPublic =
-    path === `${api}/auth/ativar` ||
     path === `${api}/auth/login` ||
     (path === `${api}/usuarios` && request.method === 'POST') ||
     (request.method === 'GET' &&

@@ -93,36 +93,26 @@ class AuthIntegrationTest extends IntegrationTestSupport {
 
 
     @Test
-    void deskReturnsExistingReaderAndReissuesOnlyPendingActivationCodes() throws Exception {
+    void onlyStaffCanSearchExistingReadersAndDeskRegistrationIsUnavailable() throws Exception {
         String staff = createUser("Bibliotecária", "bib@exemplo.com", UsuarioPerfil.LIBRARIAN);
-        var registration = post("/api/balcao/leitores").header("Authorization", bearer(staff))
-            .contentType(MediaType.APPLICATION_JSON).content("""
-                {"nome":"Ana","email":"ana.balcao@exemplo.com"}
-                """);
-        var first = mockMvc.perform(registration).andExpect(status().isCreated()).andReturn();
-        Long id = usuarioRepository.findByEmailIgnoreCase("ana.balcao@exemplo.com").orElseThrow().getId();
-        String original = readField(first, "activationCode");
-        mockMvc.perform(registration).andExpect(status().isOk())
-            .andExpect(jsonPath("$.reader.id").value(id)).andExpect(jsonPath("$.activationCode").doesNotExist());
-        mockMvc.perform(get("/api/balcao/leitores").header("Authorization", bearer(staff)).param("q", "ANA.BALCAO"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].activationPending").value(true));
-
-        jdbcTemplate.update("UPDATE usuarios SET activation_expires_at = CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id = ?", id);
-        mockMvc.perform(activation(original)).andExpect(status().isConflict());
-        var second = mockMvc.perform(post("/api/balcao/leitores/" + id + "/codigo-ativacao")
-                .header("Authorization", bearer(staff))).andExpect(status().isOk()).andReturn();
-        String fresh = readField(second, "activationCode");
-        mockMvc.perform(activation(original)).andExpect(status().isConflict());
-        mockMvc.perform(activation(fresh)).andExpect(status().isNoContent());
-        mockMvc.perform(activation(fresh)).andExpect(status().isConflict());
-        mockMvc.perform(post("/api/balcao/leitores/" + id + "/codigo-ativacao")
-                .header("Authorization", bearer(staff))).andExpect(status().isConflict());
-    }
-
-    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder activation(String code) {
-        return post("/api/auth/ativar").contentType(MediaType.APPLICATION_JSON).content("""
-            {"email":"ana.balcao@exemplo.com","code":"%s","password":"senha123nova"}
-            """.formatted(code));
+        String reader = createUser("Ana", "ana@exemplo.com", UsuarioPerfil.USER);
+        mockMvc.perform(get("/api/balcao/leitores").param("q", "exemplo.com")
+                .header("Authorization", bearer(staff)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].email").value("ana@exemplo.com"));
+        mockMvc.perform(get("/api/balcao/leitores").param("q", "Ana")
+                .header("Authorization", bearer(reader)))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/balcao/leitores").header("Authorization", bearer(staff))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"nome":"Nova leitora","email":"nova@exemplo.com"}
+                    """))
+            .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(post("/api/auth/ativar")
+                .header("Authorization", bearer(reader)).contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isNotFound());
     }
 
     @Test

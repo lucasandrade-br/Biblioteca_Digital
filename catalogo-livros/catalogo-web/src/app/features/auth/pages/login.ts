@@ -18,7 +18,6 @@ export class Login {
   protected readonly error = signal('');
   protected readonly showPassword = signal(false);
   protected readonly registered = this.params.get('cadastro') === 'concluido';
-  protected readonly activated = this.params.get('ativacao') === 'concluida';
   protected readonly expired = this.params.get('sessao') === 'expirada';
   protected readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', [notBlank, Validators.email]],

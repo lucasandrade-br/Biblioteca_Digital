@@ -1,3 +1,4 @@
+import { RowAction } from '../../../shared/components/row-action';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -10,7 +11,7 @@ import { apiErrorMessage } from '../../../core/http/api-error';
 import { AdminApi, AdminUser } from '../data-access/admin-api';
 
 @Component({
-  imports: [ReactiveFormsModule, ListFilters, ListPagination],
+  imports: [RowAction, ReactiveFormsModule, ListFilters, ListPagination],
   template: `
     <section class="page">
       <div class="page-heading">
@@ -59,7 +60,7 @@ import { AdminApi, AdminUser } from '../data-access/admin-api';
         <div class="table-wrap panel">
           <table>
             <thead>
-              <tr><th>Nome</th><th>E-mail</th><th>Perfis</th><th>Situação</th><th></th></tr>
+              <tr><th>Nome</th><th>E-mail</th><th>Perfis</th><th>Situação</th><th scope="col" class="action-column">Ações</th></tr>
             </thead>
             <tbody>
               @for (user of list.items(); track user.id) {
@@ -72,17 +73,19 @@ import { AdminApi, AdminUser } from '../data-access/admin-api';
                       {{ user.ativo ? 'Ativo' : 'Inativo' }}
                     </span>
                   </td>
-                  <td class="row-actions">
-                    @if (user.perfis.includes('LIBRARIAN')) {
-                      <button type="button" class="button-secondary small" (click)="revoke(user)">Remover bibliotecário</button>
-                    } @else {
-                      <button type="button" class="button-secondary small" (click)="grant(user)">Tornar bibliotecário</button>
-                    }
-                    @if (user.ativo) {
-                      <button type="button" class="button-secondary small" (click)="deactivate(user)">Inativar</button>
-                    } @else {
-                      <button type="button" class="button-secondary small" (click)="activate(user)">Reativar</button>
-                    }
+                  <td class="action-column">
+                    <div class="row-actions">
+                      @if (user.perfis.includes('LIBRARIAN')) {
+                        <button type="button" appRowAction="revoke" label="Remover bibliotecário" (click)="revoke(user)"></button>
+                      } @else {
+                        <button type="button" appRowAction="grant" label="Tornar bibliotecário" (click)="grant(user)"></button>
+                      }
+                      @if (user.ativo) {
+                        <button type="button" appRowAction="deactivate" label="Inativar" (click)="deactivate(user)"></button>
+                      } @else {
+                        <button type="button" appRowAction="activate" label="Reativar" (click)="activate(user)"></button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }

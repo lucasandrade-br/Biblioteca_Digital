@@ -85,12 +85,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/pages/login').then((m) => m.Login),
   },
   {
-    path: 'ativar-conta',
-    title: 'Ativar conta | Biblioteca',
-    canActivate: [guestGuard],
-    loadComponent: () => import('./features/auth/pages/activate').then((m) => m.Activate),
-  },
-  {
     path: 'cadastro',
     title: 'Criar conta | Biblioteca',
     canActivate: [guestGuard],

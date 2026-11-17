@@ -9,9 +9,12 @@ import org.example.catalogo.service.dto.PageResult;
 public interface DeskService {
 
     record QueueFilter(String status, String term, boolean pending, String deadline, LocalDate from, LocalDate to) {}
+    record Reader(Long id, String nome, String email, boolean ativo) {}
     record Attendance(LoanView reservation, int availableCopies) {}
 
     PageResult<LoanView> list(QueueFilter filter, PageQuery query);
+
+    PageResult<Reader> searchReaders(String term, PageQuery query);
 
     Attendance prepare(Long readerId, Long bookId);
 

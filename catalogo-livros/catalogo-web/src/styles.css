@@ -267,6 +267,59 @@ main {
   gap: 8px;
 }
 
+.action-column {
+  width: 1%;
+  text-align: end;
+}
+
+.action-column .row-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.row-action {
+  --action-color: #315b78;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--action-color);
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.row-action[data-tone='red'] { --action-color: #a3372b; }
+.row-action[data-tone='ochre'] { --action-color: #8b501d; }
+.row-action[data-tone='green'] { --action-color: #2f6b4a; }
+.row-action[data-tone='teal'] { --action-color: #216766; }
+
+.row-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--action-color) 83%, black);
+}
+
+.row-action-tooltip {
+  position: fixed;
+  z-index: 6;
+  max-width: calc(100vw - 20px);
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -100% -100%;
+}
+
+.row-action-tooltip.below {
+  translate: -100% 0;
+}
+
 .notice {
   padding: 10px 14px;
   border-radius: 6px;
@@ -713,6 +766,7 @@ html:has(.dialog-surface[open]) {
 .desk-metrics {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px 24px;
   margin: 0 0 16px;
   padding: 10px 14px;
@@ -740,19 +794,78 @@ html:has(.dialog-surface[open]) {
   font-weight: 600;
 }
 
+.desk-filter-primary,
+.desk-period {
+  display: grid;
+  gap: 12px;
+}
+
+.desk-filter-primary {
+  flex: 0 0 100%;
+  grid-template-columns: minmax(0, 2.6fr) repeat(2, minmax(0, 1fr));
+}
+
+.desk-period {
+  flex: 0 1 298px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.desk-period input {
+  width: 100%;
+}
+
 .desk-deadlines {
   display: flex;
-  flex: 1 1 350px;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.desk-deadlines button[aria-pressed='true'],
+.desk-filters .list-filter-actions {
+  margin-inline-start: auto;
+}
+
+.desk-deadline {
+  min-height: 34px;
+  padding: 5px 11px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #f5f0e7;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.desk-deadline:hover {
+  background: #ede6da;
+  color: var(--ink);
+}
+
+.desk-deadline[aria-pressed='true'] {
+  border-color: #dbc2ae;
+  background: #efe3d5;
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .loan-stages a[aria-current='page'] {
   border-color: var(--accent);
   background: #efe3d5;
   color: var(--ink);
   font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .desk-filter-primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .desk-filter-primary .field:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .desk-period {
+    flex-basis: 100%;
+  }
 }
 
 .desk-queue small,
@@ -788,13 +901,17 @@ html:has(.dialog-surface[open]) {
   padding: 0;
 }
 
-.activation-code {
-  display: block;
-  margin-block: 8px;
-  color: var(--ink);
-  font-size: 1.03rem;
-  overflow-wrap: anywhere;
-  user-select: all;
+.pickup-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pickup-methods button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: #efe3d5;
+  font-weight: 600;
 }
 
 .loan-stages {
@@ -907,6 +1024,10 @@ html:has(.dialog-surface[open]) {
   .desk-queue td:last-child {
     grid-column: 1 / -1;
   }
+
+  .desk-queue .action-column {
+    width: auto;
+  }
 }
 
 .dialog-header {
@@ -962,6 +1083,12 @@ html:has(.dialog-surface[open]) {
   background: var(--ink);
   color: #f6efe2;
   padding: clamp(28px, 5vw, 64px);
+}
+.story-copy {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
 }
 .story-panel h1 {
   color: #fff;

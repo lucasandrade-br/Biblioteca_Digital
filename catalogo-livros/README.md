@@ -4,9 +4,11 @@ Sistema de biblioteca: o leitor consulta o acervo, reserva um exemplar pela inte
 
 ## Integrantes
 
-- [Nome do integrante 1]
-- [Nome do integrante 2]
-- [Nome do integrante 3]
+- Eduardo Vilaça Oliveira
+- Jamerson Augusto dos Santos
+- Luis Fernando Soares Lins
+- Lucas Emanuel Alves de Andrade
+- Reynald Felipe de Lima França
 
 ## Tema
 

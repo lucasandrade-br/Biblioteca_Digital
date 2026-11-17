@@ -2,10 +2,6 @@ package org.example.catalogo.controller;
 
 import org.example.catalogo.dto.AuthResponse;
 import org.example.catalogo.dto.CredentialRequest;
-import org.example.catalogo.service.ReaderEnrollment;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.example.catalogo.security.TokenService;
 import org.example.catalogo.security.UserSS;
 import jakarta.validation.Valid;
@@ -26,24 +22,9 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
 
-    private final ReaderEnrollment enrollment;
-
-    public AuthController(AuthenticationManager authenticationManager, TokenService tokenService, ReaderEnrollment enrollment) {
+    public AuthController(AuthenticationManager authenticationManager, TokenService tokenService) {
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
-        this.enrollment = enrollment;
-    }
-
-    public record ActivationRequest(
-        @NotBlank @Email @Size(max = 255) String email,
-        @NotBlank @Size(max = 64) String code,
-        @NotBlank @Size(min = 6, max = 72) String password
-    ) {}
-
-    @PostMapping("/ativar")
-    public ResponseEntity<Void> activate(@RequestBody @Valid ActivationRequest request) {
-        enrollment.activate(request.email(), request.code(), request.password());
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")

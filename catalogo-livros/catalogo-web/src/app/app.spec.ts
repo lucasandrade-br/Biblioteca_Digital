@@ -466,7 +466,7 @@ describe('Fluxos das telas', () => {
     await page.settle();
     expect(page.el.textContent).toContain('Reservas aguardando');
 
-    page.button('Retirar com código').click();
+    page.button('Realizar retirada').click();
     await page.settle();
     page.fill('pickupCode', 'liv-abcd2345');
     page.el.querySelector('#pickupCode')!.dispatchEvent(new KeyboardEvent('keydown', {
@@ -499,7 +499,7 @@ describe('Fluxos das telas', () => {
       content: [], number: 0, size: 20, totalPages: 0, totalElements: 0,
     });
 
-    page.button('Retirar com código').click();
+    page.button('Realizar retirada').click();
     await page.settle();
     page.fill('pickupCode', LOAN.pickupCode);
     page.submit('dialog form');
@@ -535,14 +535,21 @@ describe('Fluxos das telas', () => {
     http.expectOne((request) => request.url === '/api/balcao/emprestimos').flush(empty);
     await page.settle();
 
-    page.button('Atender leitor').click();
+    expect(page.el.querySelectorAll('.desk-heading .actions button')).toHaveLength(1);
+    page.button('Realizar retirada').click();
     await page.settle();
+    expect(page.el.querySelector('dialog h2')?.textContent).toBe('Realizar retirada');
+    expect(page.el.querySelector('#pickupCode')).not.toBeNull();
+    page.button('Pesquisar leitor').click();
+    await page.settle();
+    expect(page.el.querySelector('#pickupCode')).toBeNull();
+    expect(page.button('Cadastrar leitor')).toBeUndefined();
     page.fill('desk-reader-search', 'Leitor');
     page.submit('dialog form');
     const readers = http.expectOne((request) => request.url === '/api/balcao/leitores');
     expect(readers.request.params.get('q')).toBe('Leitor');
     readers.flush({ ...empty, content: [{
-      id: LOAN.readerId, nome: LOAN.readerName, email: LOAN.readerEmail, ativo: true, activationPending: false,
+      id: LOAN.readerId, nome: LOAN.readerName, email: LOAN.readerEmail, ativo: true,
     }], totalPages: 1, totalElements: 1 });
     await page.settle();
     page.button('Selecionar').click();
@@ -890,6 +897,52 @@ describe('Fluxos das telas', () => {
     expect(TestBed.inject(Router).url).toBe('/entrar?sessao=expirada');
     expect(page.el.textContent).toContain('Sua sessão expirou.');
     expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+  });
+
+  it('recolhe a navegação em categorias e mantém os atalhos acessíveis', async () => {
+    signIn(['ADMIN']);
+    const page = await render('/conta');
+    const toggle = page.el.querySelector<HTMLButtonElement>('.navigation-toggle')!;
+    try {
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      toggle.click();
+      await page.settle();
+      expect(toggle.getAttribute('aria-label')).toBe('Expandir navegação');
+      const categories = [...page.el.querySelectorAll<HTMLButtonElement>('.category-toggle')];
+      expect(categories.map((button) => button.getAttribute('aria-label')))
+        .toEqual(['Livros', 'Operacional', 'Sistema']);
+      expect(page.el.querySelectorAll('.navigation-links:not([hidden])')).toHaveLength(0);
+      categories[2].click();
+      await page.settle();
+      expect(page.el.querySelector('.navigation-links:not([hidden])')?.textContent).toContain('Usuários');
+      expect(categories[2].getAttribute('aria-expanded')).toBe('true');
+      toggle.click();
+      await page.settle();
+      expect(page.el.querySelector('.category-toggle')).toBeNull();
+      expect(page.el.querySelectorAll('.navigation-links:not([hidden])')).toHaveLength(3);
+    } finally {
+      localStorage.removeItem('catalogo.sidebar.compact');
+    }
+  });
+
+  it('mostra o rótulo da ação da tabela no foco sem perder seu nome acessível', async () => {
+    signIn(['LIBRARIAN']);
+    const page = await render('/acervo/generos');
+    http.expectOne((request) => request.url === '/api/acervo/generos').flush({
+      content: [BOOK.genre], number: 0, size: 20, totalPages: 1, totalElements: 1,
+    });
+    await page.settle();
+    const edit = page.el.querySelector<HTMLButtonElement>('td.action-column button[aria-label="Editar"]')!;
+    const tooltip = edit.querySelector<HTMLElement>('.row-action-tooltip')!;
+    expect(edit.querySelector('svg')).not.toBeNull();
+    expect(tooltip.hidden).toBe(true);
+    edit.dispatchEvent(new FocusEvent('focus'));
+    await page.settle();
+    expect(tooltip.hidden).toBe(false);
+    expect(tooltip.textContent).toBe('Editar');
+    edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await page.settle();
+    expect(tooltip.hidden).toBe(true);
   });
 
 });

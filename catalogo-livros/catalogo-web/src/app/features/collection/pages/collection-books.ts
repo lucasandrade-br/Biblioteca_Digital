@@ -1,3 +1,4 @@
+import { RowAction } from '../../../shared/components/row-action';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -12,7 +13,7 @@ import { CollectionApi } from '../data-access/collection-api';
 import type { BookEditor } from './book-editor';
 
 @Component({
-  imports: [ListFilters, ListPagination, ReactiveFormsModule, RouterLink, RouterOutlet],
+  imports: [RowAction, ListFilters, ListPagination, ReactiveFormsModule, RouterLink, RouterOutlet],
   template: `
     <section class="page">
       <div class="page-heading">
@@ -65,7 +66,7 @@ import type { BookEditor } from './book-editor';
         <div class="table-wrap panel">
           <table>
             <thead>
-              <tr><th>Título</th><th>Autores</th><th>Gênero</th><th>Disponíveis</th><th>Situação</th><th></th></tr>
+              <tr><th>Título</th><th>Autores</th><th>Gênero</th><th>Disponíveis</th><th>Situação</th><th scope="col" class="action-column">Ações</th></tr>
             </thead>
             <tbody>
               @for (book of list.items(); track book.id) {
@@ -79,11 +80,13 @@ import type { BookEditor } from './book-editor';
                       {{ book.status === 'ACTIVE' ? 'Ativo' : 'Inativo' }}
                     </span>
                   </td>
-                  <td class="row-actions">
-                    <a class="button-secondary small" [routerLink]="['/acervo', book.id, 'editar']">Editar</a>
-                    <button type="button" class="button-secondary small" [disabled]="busyId() === book.id" (click)="toggle(book)">
-                      {{ book.status === 'ACTIVE' ? 'Inativar' : 'Reativar' }}
-                    </button>
+                  <td class="action-column">
+                    <div class="row-actions">
+                      <a appRowAction="edit" label="Editar" [routerLink]="['/acervo', book.id, 'editar']"></a>
+                      <button type="button" [appRowAction]="book.status === 'ACTIVE' ? 'deactivate' : 'activate'"
+                        [label]="book.status === 'ACTIVE' ? 'Inativar' : 'Reativar'"
+                        [disabled]="busyId() === book.id" (click)="toggle(book)"></button>
+                    </div>
                   </td>
                 </tr>
               }

@@ -80,6 +80,16 @@ public class DeskServiceImpl implements DeskService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResult<Reader> searchReaders(String term, PageQuery query) {
+        String normalized = term.trim().toLowerCase(Locale.ROOT);
+        var pageable = PageableMapper.toPageable(query);
+        var page = usuarioRepository.search(normalized, UsuarioPerfil.USER, null, pageable);
+        return PageableMapper.toResult(page.map(user -> new Reader(user.getId(), user.getNome(),
+            user.getEmail(), user.isAtivo())), query);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Attendance prepare(Long readerId, Long bookId) {
         Usuario reader = usuarioRepository.findById(readerId).orElseThrow(() ->
             new ApplicationServiceException(ApplicationServiceException.Code.NOT_FOUND, "Leitor não encontrado"));

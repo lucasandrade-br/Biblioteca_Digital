@@ -6,76 +6,34 @@
       <h3>{{ person.nome }}</h3>
       <p>{{ person.email }}</p>
     </div>
-    <div class="actions">
-      @if (person.ativo && person.activationPending) {
-        <button type="button" class="button-secondary small" [disabled]="busy()" (click)="reissue(person)">Emitir novo código</button>
-      }
-      <button type="button" class="button-secondary small" [disabled]="busy()" (click)="chooseReader(null)">Trocar leitor</button>
-    </div>
+    <button type="button" class="button-secondary small" [disabled]="busy()" (click)="chooseReader(null)">Trocar leitor</button>
   </section>
   @if (!person.ativo) { <p class="notice error" role="status">A conta do leitor está inativa.</p> }
-  @if (credential(); as issue) {
-    @if (issue.activationCode && issue.expiresAt) {
-      <div class="notice success" role="status">
-        Entregue ao leitor o código para usar em <strong>Ativar conta</strong>.
-        <code class="activation-code">{{ issue.activationCode }}</code>
-        Válido até {{ date(issue.expiresAt) }}.
-      </div>
-    } @else {
-      <p class="notice" role="status">Este e-mail já está cadastrado. A conta existente foi selecionada.</p>
-    }
-  }
 } @else {
-  <section class="attendance-step" aria-label="Identificação do leitor">
-    <h3>Leitor</h3>
-    <button type="button" class="button-secondary small" [disabled]="busy()" (click)="enrolling.set(!enrolling())">
-      {{ enrolling() ? 'Buscar leitor' : 'Cadastrar leitor' }}
-    </button>
-  </section>
-  @if (enrolling()) {
-    <form [formGroup]="registration" (ngSubmit)="register()" novalidate>
-      <div class="field">
-        <label for="desk-reader-name">Nome completo</label>
-        <input id="desk-reader-name" formControlName="nome" maxlength="255" />
-        @if (registration.controls.nome.touched && registration.controls.nome.invalid) {
-          <small class="field-error">Informe o nome do leitor.</small>
+  <form class="inline-form" (submit)="$event.preventDefault(); searchReaders()">
+    <div class="field">
+      <label for="desk-reader-search">Nome ou e-mail</label>
+      <input id="desk-reader-search" type="search" [formControl]="readerQuery" required data-dialog-initial-focus />
+    </div>
+    <button type="submit" class="button-primary" [disabled]="busy()">Buscar leitor</button>
+  </form>
+  @if (readerSearched()) {
+    @if (readers.loading()) { <p role="status">Buscando leitores…</p> }
+    @else if (readers.error()) { <p class="notice error" role="alert">{{ readers.error() }}</p> }
+    @else if (!readers.items().length) { <p role="status">Nenhum leitor encontrado.</p> }
+    @else {
+      <ul class="attendance-options">
+        @for (candidate of readers.items(); track candidate.id) {
+          <li>
+            <div><strong>{{ candidate.nome }}</strong><small>{{ candidate.email }}{{ candidate.ativo ? '' : ' · Inativo' }}</small></div>
+            <button type="button" class="button-secondary small" (click)="chooseReader(candidate)">Selecionar</button>
+          </li>
         }
-      </div>
-      <div class="field">
-        <label for="desk-reader-email">E-mail</label>
-        <input id="desk-reader-email" type="email" formControlName="email" maxlength="255" />
-        @if (registration.controls.email.touched && registration.controls.email.invalid) {
-          <small class="field-error">Informe um e-mail válido.</small>
-        }
-      </div>
-      <button type="submit" class="button-primary" [disabled]="busy()">Salvar leitor</button>
-    </form>
-  } @else {
-    <form class="inline-form" (submit)="$event.preventDefault(); searchReaders()">
-      <div class="field">
-        <label for="desk-reader-search">Nome ou e-mail</label>
-        <input id="desk-reader-search" type="search" [formControl]="readerQuery" required data-dialog-initial-focus />
-      </div>
-      <button type="submit" class="button-primary" [disabled]="busy()">Buscar leitor</button>
-    </form>
-    @if (readerSearched()) {
-      @if (readers.loading()) { <p role="status">Buscando leitores…</p> }
-      @else if (readers.error()) { <p class="notice error" role="alert">{{ readers.error() }}</p> }
-      @else if (!readers.items().length) { <p role="status">Nenhum leitor encontrado.</p> }
-      @else {
-        <ul class="attendance-options">
-          @for (candidate of readers.items(); track candidate.id) {
-            <li>
-              <div><strong>{{ candidate.nome }}</strong><small>{{ candidate.email }}{{ candidate.ativo ? '' : ' · Inativo' }}</small></div>
-              <button type="button" class="button-secondary small" (click)="chooseReader(candidate)">Selecionar</button>
-            </li>
-          }
-        </ul>
-      }
-      @if (!readers.error()) {
-        <app-list-pagination label="Paginação de leitores" [state]="readers.pagination()"
-          (pageChange)="readers.load($event)" (sizeChange)="readers.resize($event)" />
-      }
+      </ul>
+    }
+    @if (!readers.error()) {
+      <app-list-pagination label="Paginação de leitores" [state]="readers.pagination()"
+        (pageChange)="readers.load($event)" (sizeChange)="readers.resize($event)" />
     }
   }
 }
